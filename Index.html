@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador de Estudos - Investigador PC-ES</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="app" class="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Plano de Estudos</h1>
+            <p class="text-lg text-blue-600 font-semibold mt-1">Investigador de Polícia Civil - PC ES</p>
+        </header>
+
+        <main id="main-content">
+            <!-- Configuration Section -->
+            <div id="config-section" class="bg-white p-6 rounded-2xl shadow-lg mb-8 fade-in">
+                <h2 class="text-2xl font-bold mb-4 text-center">Comece a Organizar!</h2>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <label for="topics-per-day" class="font-medium text-gray-700">Quantos tópicos estudar por dia?</label>
+                    <input type="number" id="topics-per-day" value="3" min="1" max="10" class="w-24 text-center border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <button id="generate-plan-btn" class="w-full sm:w-auto bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300 transform hover:scale-105 shadow-md">
+                        Gerar Plano de Estudo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Study Plan Section -->
+            <div id="plan-section" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Seu Cronograma</h2>
+                    <button id="reset-plan-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition duration-300 text-sm">
+                        Resetar Plano
+                    </button>
+                </div>
+                <div id="schedule-container" class="space-y-6">
+                    <!-- Schedule will be dynamically inserted here -->
+                </div>
+            </div>
+
+             <!-- Syllabus Section -->
+            <div id="syllabus-section" class="mt-12 bg-white p-6 rounded-2xl shadow-lg fade-in">
+                 <h2 class="text-2xl font-bold mb-4 text-center border-b pb-2">Conteúdo Programático Completo</h2>
+                 <div id="syllabus-details" class="grid md:grid-cols-2 gap-x-8 gap-y-4 text-gray-600">
+                    <!-- Syllabus content will be dynamically inserted here -->
+                 </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const configSection = document.getElementById('config-section');
+            const planSection = document.getElementById('plan-section');
+            const generatePlanBtn = document.getElementById('generate-plan-btn');
+            const resetPlanBtn = document.getElementById('reset-plan-btn');
+            const topicsPerDayInput = document.getElementById('topics-per-day');
+            const scheduleContainer = document.getElementById('schedule-container');
+            const syllabusContainer = document.getElementById('syllabus-details');
+
+            // --- CONTEÚDO PROGRAMÁTICO ---
+            const syllabus = {
+                "Língua Portuguesa": ["Compreensão e interpretação de textos", "Tipologia textual", "Ortografia oficial", "Acentuação gráfica", "Morfologia (classes de palavras)", "Sintaxe da oração e do período", "Pontuação", "Concordância nominal e verbal", "Regência nominal e verbal", "Crase"],
+                "Raciocínio Lógico-Matemático": ["Estruturas lógicas", "Lógica de argumentação", "Diagramas lógicos", "Análise Combinatória", "Probabilidade"],
+                "Direito Constitucional": ["Princípios Fundamentais", "Direitos e Garantias Fundamentais", "Organização do Estado", "Organização dos Poderes", "Defesa do Estado e das Instituições Democráticas", "Segurança Pública (Art. 144)"],
+                "Direito Administrativo": ["Estado, governo e Administração Pública", "Atos Administrativos", "Poderes Administrativos", "Agentes Públicos", "Responsabilidade Civil do Estado", "Licitações e Contratos (Lei 14.133/2021)"],
+                "Direito Penal": ["Aplicação da Lei Penal", "Teoria do Crime", "Culpabilidade", "Concurso de Pessoas", "Penas", "Crimes contra a Pessoa", "Crimes contra o Patrimônio", "Crimes contra a Fé Pública", "Crimes contra a Administração Pública"],
+                "Direito Processual Penal": ["Inquérito Policial", "Ação Penal", "Prisão e Liberdade Provisória", "Provas", "Competência"],
+                "Legislação Extravagante": ["Lei de Abuso de Autoridade (Lei nº 13.869/2019)", "Lei de Drogas (Lei nº 11.343/2006)", "Estatuto do Desarmamento (Lei nº 10.826/2003)", "Lei de Tortura (Lei nº 9.455/1997)", "Lei dos Crimes Hediondos (Lei nº 8.072/1990)", "Lei Maria da Penha (Lei nº 11.340/2006)", "Lei de Organização Criminosa (Lei nº 12.850/2013)"],
+                "Noções de Direitos Humanos": ["Teoria geral dos direitos humanos", "Afirmação histórica dos direitos humanos", "PNDH-3 (Programa Nacional de Direitos Humanos)"],
+                "Informática": ["Conceitos de Internet e Intranet", "Segurança da Informação", "Hardware e Software", "Sistemas Operacionais (Windows e Linux)", "Redes de Computadores"],
+                "Legislação Estadual (ES)": ["Estatuto dos Policiais Civis do ES (Lei nº 3.400/1981)", "Lei de Organização da Polícia Civil do ES (LC nº 411/2007)"],
+            };
+
+            let studyPlan = [];
+
+            function displaySyllabus() {
+                syllabusContainer.innerHTML = '';
+                for (const subject in syllabus) {
+                    const subjectDiv = document.createElement('div');
+                    subjectDiv.innerHTML = `<h3 class="font-bold text-blue-700 mt-2">${subject}</h3>`;
+                    const topicList = document.createElement('ul');
+                    topicList.className = 'list-disc list-inside ml-4';
+                    syllabus[subject].forEach(topic => {
+                        const li = document.createElement('li');
+                        li.textContent = topic;
+                        topicList.appendChild(li);
+                    });
+                    subjectDiv.appendChild(topicList);
+                    syllabusContainer.appendChild(subjectDiv);
+                }
+            }
+
+            // Fisher-Yates shuffle algorithm for randomizing topics
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            function generateStudyPlan() {
+                const topicsPerDay = parseInt(topicsPerDayInput.value, 10);
+                if (isNaN(topicsPerDay) || topicsPerDay < 1) {
+                    alert('Por favor, insira um número válido de tópicos por dia.');
+                    return;
+                }
+
+                let allTopics = [];
+                for (const subject in syllabus) {
+                    syllabus[subject].forEach(topic => {
+                        allTopics.push({ subject, topic, status: 'pending', type: 'study' });
+                    });
+                }
+                
+                allTopics = shuffleArray(allTopics);
+
+                studyPlan = [];
+                let dayIndex = 0;
+                for (let i = 0; i < allTopics.length; i += topicsPerDay) {
+                    const dayTopics = allTopics.slice(i, i + topicsPerDay);
+                    const date = new Date();
+                    date.setDate(date.getDate() + dayIndex);
+                    
+                    const formattedTopics = dayTopics.map((topicData, index) => {
+                        const studyTime = new Date();
+                        studyTime.setHours(20 + index, 0, 0, 0); // Starts at 20:00
+                        return { ...topicData, time: studyTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }) };
+                    });
+
+                    const daySchedule = {
+                        date: date.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                        isoDate: date.toISOString().slice(0, 10), // YYYY-MM-DD format for easier processing
+                        topics: formattedTopics
+                    };
+                    
+                    // Add daily questions reminder
+                    daySchedule.topics.push({ subject: 'Prática Diária', topic: 'Resolver Questões', status: 'pending', time: 'Flexível', type: 'questions' });
+
+                    // Add weekend simulation reminder
+                    const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+                    if (dayOfWeek === 0 || dayOfWeek === 6) {
+                        daySchedule.topics.push({ subject: 'Avaliação Semanal', topic: 'Fazer Simulado Geral', status: 'pending', time: 'Manhã', type: 'simulation' });
+                    }
+                    
+                    studyPlan.push(daySchedule);
+                    dayIndex++;
+                }
+
+                saveAndRender();
+                configSection.classList.add('hidden');
+                planSection.classList.remove('hidden');
+            }
+
+            function renderSchedule() {
+                scheduleContainer.innerHTML = '';
+                if (studyPlan.length === 0) {
+                     scheduleContainer.innerHTML = `<div class="text-center p-6 bg-white rounded-lg shadow-md">
+                        <p class="font-semibold text-lg">🎉 Parabéns! Você concluiu todos os tópicos! 🎉</p>
+                        <p class="text-gray-600 mt-2">Clique em "Resetar Plano" para começar um novo ciclo de estudos.</p>
+                     </div>`;
+                     return;
+                }
+
+                studyPlan.forEach((day, dayIndex) => {
+                    if (day.topics.every(t => t.type !== 'study') && !day.justEmptied) {
+                        return;
+                    }
+                    delete day.justEmptied;
+
+                    const dayCard = document.createElement('div');
+                    dayCard.className = 'bg-white p-5 rounded-xl shadow-md fade-in';
+                    
+                    let topicsHtml = day.topics.map((topic, topicIndex) => {
+                        let statusClass = topic.status === 'completed' ? 'opacity-60' : '';
+                        let buttons = '';
+                        let contentHtml = '';
+                        
+                        switch (topic.type) {
+                            case 'questions':
+                                contentHtml = `
+                                    <div class="flex-1 mb-2 sm:mb-0">
+                                        <div class="flex items-center gap-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-600"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M10 21v-4a2 2 0 0 1 2-2h4"/></svg>
+                                            <div><p class="font-semibold text-sky-800">${topic.topic}</p><p class="text-sm text-sky-600">${topic.subject}</p></div>
+                                        </div>
+                                    </div>`;
+                                buttons = `<button data-day-index="${dayIndex}" data-topic-index="${topicIndex}" class="complete-btn bg-sky-500 text-white px-3 py-1 text-sm rounded-md hover:bg-sky-600 transition">✅ Concluído</button>`;
+                                statusClass += ' bg-sky-50 border-l-4 border-sky-400';
+                                break;
+                            case 'simulation':
+                                 contentHtml = `
+                                    <div class="flex-1 mb-2 sm:mb-0">
+                                        <div class="flex items-center gap-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                            <div><p class="font-semibold text-indigo-800">${topic.topic}</p><p class="text-sm text-indigo-600">${topic.subject}</p></div>
+                                        </div>
+                                    </div>`;
+                                buttons = `<button data-day-index="${dayIndex}" data-topic-index="${topicIndex}" class="complete-btn bg-indigo-500 text-white px-3 py-1 text-sm rounded-md hover:bg-indigo-600 transition">✅ Concluído</button>`;
+                                statusClass += ' bg-indigo-50 border-l-4 border-indigo-400';
+                                break;
+                            default: // 'study'
+                                const calendarButton = `
+                                <button data-day-index="${dayIndex}" data-topic-index="${topicIndex}" class="add-to-calendar-btn text-gray-500 hover:text-blue-600 transition" title="Adicionar ao Google Agenda">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+                                </button>`;
+
+                                contentHtml = `
+                                    <div class="flex-1 mb-2 sm:mb-0">
+                                        <span class="font-bold text-gray-500">${topic.time}</span>
+                                        <p class="font-semibold">${topic.topic}</p>
+                                        <p class="text-sm text-blue-500">${topic.subject}</p>
+                                    </div>`;
+                                if (topic.wasRescheduled) {
+                                    buttons = `
+                                    ${calendarButton}
+                                    <button data-day-index="${dayIndex}" data-topic-index="${topicIndex}" class="complete-btn bg-green-500 text-white px-3 py-1 text-sm rounded-md hover:bg-green-600 transition">✅ Concluído</button>
+                                    <button data-day-index="${dayIndex}" data-topic-index="${topicIndex}" class="undo-reschedule-btn bg-orange-500 text-white px-3 py-1 text-sm rounded-md hover:bg-orange-600 transition">↩️ Reverter</button>`;
+                                } else {
+                                    buttons = `
+                                    ${calendarButton}
+                                    <button data-day-index="${dayIndex}" data-topic-index="${topicIndex}" class="complete-btn bg-green-500 text-white px-3 py-1 text-sm rounded-md hover:bg-green-600 transition">✅ Concluído</button>
+                                    <button data-day-index="${dayIndex}" data-topic-index="${topicIndex}" class="reschedule-btn bg-yellow-500 text-white px-3 py-1 text-sm rounded-md hover:bg-yellow-600 transition">🔄 Reagendar</button>`;
+                                }
+                                if(topic.status === 'completed') statusClass += ' bg-green-100';
+                                break;
+                        }
+
+                        if (topic.status === 'completed') {
+                            buttons = `
+                                <span class="text-green-600 font-semibold flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                    Feito!
+                                </span>
+                                <button data-day-index="${dayIndex}" data-topic-index="${topicIndex}" class="undo-btn text-xs text-gray-500 hover:text-gray-800 hover:underline transition">Reverter</button>
+                            `;
+                            if(topic.type === 'study') contentHtml = contentHtml.replace('<p class="font-semibold">', '<p class="font-semibold line-through">');
+                        }
+                        
+                        return `
+                            <li class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg ${statusClass}">
+                                ${contentHtml}
+                                <div class="flex gap-2 self-end sm:self-center items-center">
+                                    ${buttons}
+                                </div>
+                            </li>
+                        `;
+                    }).join('');
+
+                    dayCard.innerHTML = `
+                        <h3 class="text-xl font-bold mb-3 border-b-2 border-blue-200 pb-2 capitalize">${day.date}</h3>
+                        <ul class="space-y-2">${topicsHtml}</ul>
+                    `;
+                    scheduleContainer.appendChild(dayCard);
+                });
+                addEventListeners();
+            }
+            
+            function handleTopicAction(e) {
+                const target = e.target.closest('button');
+                if (!target || !target.dataset.dayIndex) return;
+
+                const dayIndex = parseInt(target.dataset.dayIndex, 10);
+                const topicIndex = parseInt(target.dataset.topicIndex, 10);
+                const day = studyPlan[dayIndex];
+                const topicToHandle = day.topics[topicIndex];
+                
+                if (target.classList.contains('add-to-calendar-btn')) {
+                    const startTime = new Date(`${day.isoDate}T${topicToHandle.time}:00`);
+                    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Assume 1 hour duration
+
+                    const toGoogleFormat = (date) => date.toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z';
+
+                    const title = encodeURIComponent(`Estudar: ${topicToHandle.topic}`);
+                    const details = encodeURIComponent(`Matéria: ${topicToHandle.subject}\n\nCriado pelo Organizador de Estudos.`);
+                    const dates = `${toGoogleFormat(startTime)}/${toGoogleFormat(endTime)}`;
+
+                    const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}`;
+                    window.open(url, '_blank');
+                    return; // Action is done, no need to re-render
+                }
+
+
+                if (target.classList.contains('complete-btn')) {
+                    topicToHandle.status = 'completed';
+                } else if (target.classList.contains('undo-btn')) {
+                    topicToHandle.status = 'pending';
+                } else if (target.classList.contains('reschedule-btn')) {
+                    const originalDate = studyPlan[dayIndex].date;
+                    const [rescheduledTopic] = studyPlan[dayIndex].topics.splice(topicIndex, 1);
+                    rescheduledTopic.status = 'pending';
+                    rescheduledTopic.wasRescheduled = true;
+                    rescheduledTopic.originalDate = originalDate;
+                    
+                    studyPlan[dayIndex].justEmptied = true;
+
+                    const lastDay = studyPlan[studyPlan.length - 1];
+                    const lastStudyTopic = [...(lastDay?.topics || [])].reverse().find(t => t.type === 'study');
+                    let newTime = '20:00';
+
+                    if(lastStudyTopic && lastStudyTopic.time){
+                         try {
+                            const [hours, minutes] = lastStudyTopic.time.split(':');
+                            const lastTopicTime = new Date();
+                            lastTopicTime.setHours(parseInt(hours) + 1, parseInt(minutes), 0, 0);
+                            newTime = lastTopicTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                         } catch(err){ /* Fails silently, uses default */ }
+                    }
+                    
+                    rescheduledTopic.time = newTime;
+
+                    if (lastDay && lastDay.topics.some(t => t.type === 'study')) {
+                        const firstReminderIndex = lastDay.topics.findIndex(t => t.type !== 'study');
+                        if(firstReminderIndex !== -1) {
+                            lastDay.topics.splice(firstReminderIndex, 0, rescheduledTopic);
+                        } else {
+                            lastDay.topics.push(rescheduledTopic);
+                        }
+                    } else { 
+                        const newDate = new Date();
+                        const lastDateStr = studyPlan.length > 0 ? studyPlan[studyPlan.length - 1].isoDate : new Date().toISOString().slice(0, 10);
+                        const [year, month, day] = lastDateStr.split('-').map(Number);
+                        const lastDate = new Date(year, month - 1, day);
+
+                        newDate.setDate(lastDate.getDate() + 1);
+
+                        const daySchedule = {
+                            date: newDate.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                            isoDate: newDate.toISOString().slice(0, 10),
+                            topics: [rescheduledTopic]
+                        };
+                        daySchedule.topics.push({ subject: 'Prática Diária', topic: 'Resolver Questões', status: 'pending', time: 'Flexível', type: 'questions' });
+                        if ([0, 6].includes(newDate.getDay())) {
+                            daySchedule.topics.push({ subject: 'Avaliação Semanal', topic: 'Fazer Simulado Geral', status: 'pending', time: 'Manhã', type: 'simulation' });
+                        }
+                        studyPlan.push(daySchedule);
+                    }
+                } else if (target.classList.contains('undo-reschedule-btn')) {
+                    const [topicToMove] = studyPlan[dayIndex].topics.splice(topicIndex, 1);
+                    const originalDate = topicToMove.originalDate;
+                    const originalDay = studyPlan.find(d => d.date === originalDate);
+
+                    if (originalDay) {
+                        delete topicToMove.wasRescheduled;
+                        delete topicToMove.originalDate;
+                        originalDay.topics.push(topicToMove);
+                        
+                        originalDay.topics.sort((a, b) => {
+                            if (!a.time || ['Flexível', 'Manhã'].includes(a.time)) return 1;
+                            if (!b.time || ['Flexível', 'Manhã'].includes(b.time)) return -1;
+                            return a.time.localeCompare(b.time);
+                        });
+                    } else {
+                        console.error("Original day not found for topic:", topicToMove);
+                        studyPlan[dayIndex].topics.splice(topicIndex, 0, topicToMove);
+                    }
+                }
+                
+                saveAndRender();
+            }
+
+            function addEventListeners() {
+                scheduleContainer.addEventListener('click', handleTopicAction);
+            }
+
+            function saveAndRender() {
+                // Filter out empty days before saving
+                const planToSave = studyPlan.filter(day => day.topics.length > 0);
+                localStorage.setItem('studyPlanPCES', JSON.stringify(planToSave));
+                renderSchedule();
+            }
+
+            function loadPlan() {
+                const savedPlan = localStorage.getItem('studyPlanPCES');
+                if (savedPlan) {
+                    studyPlan = JSON.parse(savedPlan);
+                     if(studyPlan.length > 0) {
+                        configSection.classList.add('hidden');
+                        planSection.classList.remove('hidden');
+                        renderSchedule();
+                    } else {
+                        configSection.classList.add('hidden');
+                        planSection.classList.remove('hidden');
+                        renderSchedule();
+                    }
+                }
+            }
+
+            function resetPlan() {
+                if (confirm('Você tem certeza que deseja apagar todo o seu plano de estudos e começar de novo?')) {
+                    localStorage.removeItem('studyPlanPCES');
+                    studyPlan = [];
+                    planSection.classList.add('hidden');
+                    configSection.classList.remove('hidden');
+                    scheduleContainer.innerHTML = '';
+                }
+            }
+            
+            // Initial setup
+            generatePlanBtn.addEventListener('click', generateStudyPlan);
+            resetPlanBtn.addEventListener('click', resetPlan);
+            displaySyllabus();
+            loadPlan();
+        });
+    </script>
+</body>
+</html>
+
